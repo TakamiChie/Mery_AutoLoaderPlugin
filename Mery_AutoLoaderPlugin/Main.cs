@@ -199,6 +199,7 @@ namespace TakamiChie.Mery.AutoLoader
         procinfo.UseShellExecute = false;
         var stdout = "";
         var stderr = "";
+        var usecon = false;
         try
         {
           // 起動
@@ -225,7 +226,11 @@ namespace TakamiChie.Mery.AutoLoader
               break;
             case "console":
               // コンソール出力
-              SendMessage(hWnd, ME_OUTPUT_STRING, FLAG_CLEAR_OUTPUT, "");
+              if (!usecon)
+              {
+                SendMessage(hWnd, ME_OUTPUT_STRING, FLAG_CLEAR_OUTPUT, "");
+                usecon = true;
+              }
               SendMessage(hWnd, ME_OUTPUT_STRING, 0, stdout);
               break;
           }
@@ -236,8 +241,25 @@ namespace TakamiChie.Mery.AutoLoader
         }
         if (stderr != "")
         {
-          MessageBox.Show(stderr);
+          MessageBox.Show(stderr, "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
+
+        // メッセージ表示
+        if (manager.hasKey("console"))
+        {
+          if (!usecon)
+          {
+            SendMessage(hWnd, ME_OUTPUT_STRING, FLAG_CLEAR_OUTPUT, "");
+            usecon = true;
+          }
+          SendMessage(hWnd, ME_OUTPUT_STRING, 0, manager.getExtractVar("console"));
+        }
+
+        if (manager.hasKey("dialog"))
+        {
+          MessageBox.Show(manager.getExtractVar("dialog"));
+        }
+
       }
     }
 
