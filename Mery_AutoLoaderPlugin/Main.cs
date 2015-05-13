@@ -187,31 +187,12 @@ namespace TakamiChie.Mery.AutoLoader
     ///// <param name="hWnd">対象のエディタハンドル</param>
     public void OnFileSaved(IntPtr hWnd)
     {
-      var editor = new Editor(hWnd);
-      // エディタからコマンド文を取得
-      var lc = editor.GetLines(true);
-      var commands = new Dictionary<String, String>();
-      var regex = new Regex(@".*\*{2}\s*(\w+):(.*)");
-      for (int i = 0; i < lc - 1; i++)
+      var manager = new CommandManager(new Editor(hWnd));
+      if (manager.hasKey("run"))
       {
-        var s = editor.GetLine(i, true);
-        var m = regex.Match(s);
-        if (m.Success)
-        {
-          commands.Add(m.Groups[1].Value, m.Groups[2].Value);
-        }
-        else
-        {
-          break;
-        }
-      }
-      // run
-      if (commands.ContainsKey("run"))
-      {
-        var path = editor.GetDocumentPath();
         SendMessage(hWnd, ME_OUTPUT_STRING, FLAG_CLEAR_OUTPUT, "");
-        var procinfo = new ProcessStartInfo(which(commands["run"]));
-        procinfo.Arguments = commands["args"].Replace("$1", path);
+        var procinfo = new ProcessStartInfo(manager.getPath("run"));
+        procinfo.Arguments = manager.getExtractVar("args");
         procinfo.CreateNoWindow = true;
         procinfo.RedirectStandardOutput = true;
         procinfo.RedirectStandardError = true;
@@ -550,13 +531,5 @@ namespace TakamiChie.Mery.AutoLoader
 
     #endregion
 
-    private string which(String fileName){
-      return Environment.GetEnvironmentVariable("PATH").Split(';')
-        .Select(x => Path.Combine(x, fileName))
-        .SelectMany(_ => Environment.GetEnvironmentVariable("PATHEXT").Split(';')
-          .Concat(new String[] { Path.GetExtension(fileName) }), 
-            (p, ext) => Path.ChangeExtension(p, ext))
-        .Where(File.Exists).FirstOrDefault();
-    }
   }
 }
