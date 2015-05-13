@@ -190,9 +190,9 @@ namespace TakamiChie.Mery.AutoLoader
       var manager = new CommandManager(new Editor(hWnd));
       if (manager.hasKey("run"))
       {
-        SendMessage(hWnd, ME_OUTPUT_STRING, FLAG_CLEAR_OUTPUT, "");
+        // プロセス起動準備
         var procinfo = new ProcessStartInfo(manager.getPath("run"));
-        procinfo.Arguments = manager.getExtractVar("args");
+        procinfo.Arguments = manager.hasKey("args") ? manager.getExtractVar("args") : "";
         procinfo.CreateNoWindow = true;
         procinfo.RedirectStandardOutput = true;
         procinfo.RedirectStandardError = true;
@@ -201,15 +201,39 @@ namespace TakamiChie.Mery.AutoLoader
         var stderr = "";
         try
         {
+          // 起動
           var proc = Process.Start(procinfo);
           stdout = proc.StandardOutput.ReadToEnd();
           stderr = proc.StandardError.ReadToEnd();
+
+          // 結果表示
+          switch (manager.hasKey("out") ? manager.get("out") : "console")
+          {
+            case "file":
+              // ファイル出力
+              if (manager.hasKey("outfile"))
+              {
+                using (var stream = new StreamWriter(manager.getExtractVar("outfile")))
+                {
+                  stream.Write(stdout);
+                }
+              }
+              else
+              {
+                throw new InvalidDataException("outfileコマンドが見つかりません");
+              }
+              break;
+            case "console":
+              // コンソール出力
+              SendMessage(hWnd, ME_OUTPUT_STRING, FLAG_CLEAR_OUTPUT, "");
+              SendMessage(hWnd, ME_OUTPUT_STRING, 0, stdout);
+              break;
+          }
         }
-        catch (Win32Exception e)
+        catch (Exception e)
         {
           stderr = e.Message;
         }
-        SendMessage(hWnd, ME_OUTPUT_STRING, 0, stdout);
         if (stderr != "")
         {
           MessageBox.Show(stderr);
